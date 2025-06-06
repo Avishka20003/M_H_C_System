@@ -14,9 +14,10 @@ public class SessionDto {
     int session_id;
     String topic;
     String description;
+    String date;
     String duration;
     int midwife_id;
-    String date;
+
 
     public SessionDto(String topic, String description, String date, String duration, int midwife_id) {
         this.topic = topic;

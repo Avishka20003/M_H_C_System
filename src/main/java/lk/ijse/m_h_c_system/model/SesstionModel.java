@@ -18,20 +18,35 @@ public class SesstionModel {
                 sessionDto.getDuration(),
                 1
         );
-       return isAdded;
+        return isAdded;
     }
-    public ArrayList<SessionDto> getAllSession() throws SQLException, ClassNotFoundException {
-        ResultSet result = CrudUtil.execute("SELECT * FROM session");
-        ArrayList<SessionDto> sessions = new ArrayList<>();
-        while (result.next()) {
-            SessionDto session = new SessionDto(result.getInt(1),result.getString(2),result.getString(3),result.getString(4),result.getInt(5),result.getString(6));
-            sessions.add(session);
 
+    public ArrayList<SessionDto> getAllSession() throws SQLException, ClassNotFoundException {
+        ResultSet resultSet = CrudUtil.execute("SELECT * FROM session");
+        ArrayList<SessionDto> sessions = new ArrayList<>();
+        while (resultSet.next()) {
+            SessionDto session = new SessionDto(
+                    resultSet.getInt("session_id"),
+                    resultSet.getString("topic"),
+                    resultSet.getString("description"),
+                    resultSet.getString("date"),
+                    resultSet.getString("duration"),
+                    resultSet.getInt("midwife_id")
+            );
+            sessions.add(session);
         }
         return sessions;
     }
-    public boolean deleteSession(int id) throws SQLException, ClassNotFoundException {
-        boolean isDeleted = CrudUtil.execute("DELETE FROM session WHERE session_id = ? ", id);
-        return isDeleted;
+
+    public boolean deleteSession(int sessionId) throws SQLException, ClassNotFoundException {
+        String sql = "DELETE FROM session WHERE session_id=?";
+        boolean isDelete = CrudUtil.execute(sql,sessionId);
+        return isDelete;
+    }
+
+    public boolean updateSession(SessionDto sessionDto) throws SQLException, ClassNotFoundException {
+        String sql =  "UPDATE session SET topic=?,description=?,date=?,duration=? WHERE session_id=?";
+        boolean isUpdated = CrudUtil.execute(sql ,sessionDto.getTopic(),sessionDto.getDescription(),sessionDto.getDate(),sessionDto.getDuration(),sessionDto.getSession_id());
+        return isUpdated;
     }
 }

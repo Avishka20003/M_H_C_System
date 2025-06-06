@@ -1,6 +1,8 @@
 package lk.ijse.m_h_c_system.dto.tm;
 
 import com.jfoenix.controls.JFXButton;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,6 +19,6 @@ public class SessionTm {
     public String description;
     public String date;
     public String duration;
-    private JFXButton action;
+    private HBox action;
 
 }

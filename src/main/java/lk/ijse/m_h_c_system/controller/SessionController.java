@@ -5,51 +5,64 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
+import lk.ijse.m_h_c_system.dto.ClinicDto;
 import lk.ijse.m_h_c_system.dto.SessionDto;
+import lk.ijse.m_h_c_system.dto.tm.ClincTm;
 import lk.ijse.m_h_c_system.dto.tm.SessionTm;
 import lk.ijse.m_h_c_system.model.SesstionModel;
 
 import java.net.URL;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 
 public class SessionController implements Initializable {
 
-    public TableColumn<SessionTm, Integer> collId;
-    public TableColumn<SessionTm, String> collTopic;
-    public TableColumn<SessionTm, String> collDessc;
-    public TableColumn<SessionTm, String> collDate;
-    public TableColumn<SessionTm, String> collDuration;
-
-    public TableColumn collAction;
+    public Label labelId;
     public TextField txtTopic;
-    public TextField txtDdscription;
-    public TextField txtDate;
+
+    public DatePicker date;
     public TextField txtDuration;
-    public TableView tblSesstions;
+    public TextArea txtDescription;
+
+    public Button btnAddSession;
+    public Button btnUpdateSession;
+
+    public TableView<SessionTm> tableView;
+    public TableColumn<SessionTm, Integer> colSessionId;
+    public TableColumn<SessionTm, String> colTopic;
+    public TableColumn<SessionTm, String> colDescription;
+    public TableColumn<SessionTm, String> colDate;
+    public TableColumn<SessionTm, String> colDuration;
+    public TableColumn<SessionTm, String> colAction;
 
 
     SesstionModel sesstionModel = new SesstionModel();   //  creat an intance of sesstionmodel
 
 
-    public void btnSaveOnAction(ActionEvent actionEvent) throws SQLException, ClassNotFoundException {
+    public void btnAddSessionOnAction(ActionEvent actionEvent) throws SQLException, ClassNotFoundException {
         String topic = txtTopic.getText();
-        String description = txtDdscription.getText();
-        String date = txtDate.getText();
+        String description = txtDescription.getText();
+        String dt = date.getValue().toString();
         String duration = txtDuration.getText();
 
-        SessionDto session = new SessionDto(topic, description, date, duration, 1);
+        SessionDto session = new SessionDto(topic, description, dt, duration, 1);
 
 
         try {
             boolean isAdd = sesstionModel.addSession(session);
             if (isAdd) {
-                new Alert(Alert.AlertType.CONFIRMATION, "Session added successfully").show();
                 reset();
+                new Alert(Alert.AlertType.CONFIRMATION, "Session added successfully").show();
+
             } else {
                 new Alert(Alert.AlertType.CONFIRMATION, "Session added error").show();
             }
@@ -61,22 +74,14 @@ public class SessionController implements Initializable {
         }
     }
 
-    private void reset() throws SQLException, ClassNotFoundException {
-        loadSession();
-        txtTopic.clear();
-        txtDdscription.clear();
-        txtDate.clear();
-        txtDuration.clear();
-
-    }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         initializeTable();
         try {
             reset();
-
-        }catch (Exception e) {
+            loadTableData();
+        } catch (Exception e) {
             new Alert(Alert.AlertType.ERROR, e.getMessage()).show();
             e.printStackTrace();
         }
@@ -84,64 +89,141 @@ public class SessionController implements Initializable {
     }
 
     public void initializeTable() {
-        collId.setCellValueFactory(new PropertyValueFactory<>("session_id"));
-        collTopic.setCellValueFactory(new PropertyValueFactory<>("topic"));
-        collDessc.setCellValueFactory(new PropertyValueFactory<>("description"));
-        collDate.setCellValueFactory(new PropertyValueFactory<>("date"));
-        collDuration.setCellValueFactory(new PropertyValueFactory<>("duration"));
-        collAction.setCellValueFactory(new PropertyValueFactory<>("action"));
-
+        colSessionId.setCellValueFactory(new PropertyValueFactory<>("session_id"));
+        colTopic.setCellValueFactory(new PropertyValueFactory<>("topic"));
+        colDescription.setCellValueFactory(new PropertyValueFactory<>("description"));
+        colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
+        colDuration.setCellValueFactory(new PropertyValueFactory<>("duration"));
+        colAction.setCellValueFactory(new PropertyValueFactory<>("action"));
     }
 
-    public void loadSession() throws SQLException, ClassNotFoundException {
-        ArrayList<SessionDto> session = sesstionModel.getAllSession();
-        ObservableList<SessionTm> observableList = FXCollections.observableArrayList();
-        for (SessionDto sessionDto : session) {
-            SessionTm sessionTm = new SessionTm();
-            sessionTm.setSession_id(sessionDto.getSession_id());
-            sessionTm.setTopic(sessionDto.getTopic());
-            sessionTm.setDescription(sessionDto.getDescription());
-            sessionTm.setDate(sessionDto.getDate());
-            sessionTm.setDuration(sessionDto.getDuration());
+    public void loadTableData() throws SQLException, ClassNotFoundException {
+        tableView.setItems(FXCollections.observableArrayList(
+                sesstionModel.getAllSession().stream()
+                        .map(sessionDTO -> {
+                            // Create Edit button with ✏️ emoji
+                            Button editButton = new Button("\uD83D\uDD8B");
+                            editButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
 
-            JFXButton btnDelete = new JFXButton("Delete");
-            btnDelete.setOnAction(event -> {
-                try {
-                    deleteSession(sessionDto.getSession_id());
-                } catch (Exception e) {
-                    new Alert(Alert.AlertType.ERROR, "Something went wrong").show();
-                }
-            });
+                            // Create Delete button with 🗑️ emoji
+                            Button deleteButton = new Button("\uD83D\uDDD1");
+                            deleteButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white;");
 
-            sessionTm.setAction(btnDelete);
-            observableList.add(sessionTm);
 
+                            // Add actions
+                            editButton.setOnAction(e -> {
+
+                                System.out.println("Edit clicked for: " + sessionDTO.getSession_id());
+                                editClinicDataLoader(sessionDTO);
+                                System.out.println("Edit clicked for: "+sessionDTO.getSession_id());
+                            });
+
+                            deleteButton.setOnAction(e -> {
+                                System.out.println("Delete clicked for: " + sessionDTO.getSession_id());
+                                deleteSession(sessionDTO.getSession_id());
+                            });
+
+                            // Create HBox with buttons
+                            HBox actionBox = new HBox(10, editButton, deleteButton);
+                            actionBox.setAlignment(Pos.CENTER);
+
+                            return new SessionTm(
+                                    sessionDTO.getSession_id(),
+                                    sessionDTO.getTopic(),
+                                    sessionDTO.getDescription(),
+                                    sessionDTO.getDate(),
+                                    sessionDTO.getDuration(),
+                                    actionBox
+                            );
+                        })
+                        .collect(Collectors.toList()) // Replace .toList() if using Java < 16
+        ));
+    }
+
+    public void reset() {
+        txtTopic.clear();
+        txtDuration.clear();
+        txtDescription.clear();
+        txtDuration.clear();
+        btnAddSession.setDisable(false);
+        btnUpdateSession.setDisable(true);
+        try {
+            loadTableData();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        tblSesstions.setItems(observableList);
-
     }
-    public void deleteSession(int id) throws SQLException, ClassNotFoundException {
+
+    public void deleteSession(int id) {
 
         try {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Delete Session");
             alert.setHeaderText(null);
             alert.setContentText("Are you sure you want to delete this session?");
-                Optional<ButtonType> result = alert.showAndWait();
-                if (result.get() == ButtonType.OK) {
-                    boolean isDeleted = sesstionModel.deleteSession(id);
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.get() == ButtonType.OK) {
+                boolean isDeleted = sesstionModel.deleteSession(id);
 
-                    if (isDeleted) {
-                        System.out.println("Deleted session successfully");
-                        reset();
-                    }else {
-                        new Alert(Alert.AlertType.ERROR, "Something went wrong").show();
-                    }
+                if (isDeleted) {
+                    reset();
+                    System.out.println("Deleted session successfully");
+
+                } else {
+                    new Alert(Alert.AlertType.ERROR, "Something went wrong").show();
                 }
-        }catch (Exception e) {
+            }
+        } catch (Exception e) {
             new Alert(Alert.AlertType.ERROR, e.getMessage()).show();
             e.printStackTrace();
+
         }
 
     }
+
+    public void editClinicDataLoader(SessionDto sessionDto) {
+        labelId.setText(Integer.toString(sessionDto.getSession_id()));
+        txtTopic.setText(sessionDto.getTopic());
+        txtDescription.setText(sessionDto.getDescription());
+        date.setValue(LocalDate.parse(sessionDto.getDate()));
+        txtDuration.setText(sessionDto.getDuration());
+
+        btnAddSession.setDisable(true);
+        btnUpdateSession.setDisable(false);
+    }
+
+
+    public void btnUpdateSessionOnAction(ActionEvent actionEvent) {
+        int sessionId = Integer.parseInt(labelId.getText());
+        String topic = txtTopic.getText();
+        String description = txtDescription.getText();
+        String dt = date.getValue().toString();
+        String duration = txtDuration.getText();
+
+        SessionDto sessionDto = new SessionDto(
+                sessionId,
+                topic,
+                description,
+                dt,
+                duration,
+                1
+        );
+        try {
+            boolean isUpdated = sesstionModel.updateSession(sessionDto);
+            if (isUpdated) {
+                reset();
+                new Alert(Alert.AlertType.INFORMATION, "Customer updated successfully.").show();
+            } else {
+                new Alert(Alert.AlertType.ERROR, "Fail to update customer.").show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            new Alert(Alert.AlertType.ERROR, e.getMessage()).show();
+        }
+
+    }
+
+    public void tableSessinOnClick(MouseEvent mouseEvent) {
+    }
 }
+

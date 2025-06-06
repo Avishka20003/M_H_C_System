@@ -75,4 +75,6 @@ public class DashboardLayoutController implements Initializable {
         }
     }
 
+    public void btnTestOnAction(ActionEvent actionEvent) {loader("/view/Test.fxml");
+    }
 }
